@@ -35,3 +35,12 @@ msbuild.wrn
 
 # Visual Studio 2015
 .vs/
+
+identityserver4_log.txt
+tempkey.rsa
+samples/KeyManagement/FileSystem/dataprotectionkeys/
+samples/KeyManagement/FileSystem/signingkeys/
+workspace.xml
+
+src/IdentityServer4/host/identityserver.db
+tempkey.jwk
