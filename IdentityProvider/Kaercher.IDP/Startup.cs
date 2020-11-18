@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -41,7 +42,11 @@ namespace Kaercher.IDP
 
             var builder = services.AddIdentityServer(options =>
             {
-                // see https://identityserver4.readthedocs.io/en/latest/topics/resources.html
+                options.Events.RaiseErrorEvents = true;
+                options.Events.RaiseInformationEvents = true;
+                options.Events.RaiseFailureEvents = true;
+                options.Events.RaiseSuccessEvents = true;
+                options.Authentication.CookieLifetime = TimeSpan.FromMinutes(15);
                 options.EmitStaticAudienceClaim = true;
             })
                 //.AddInMemoryIdentityResources(Config.IdentityResources)
@@ -50,8 +55,7 @@ namespace Kaercher.IDP
                 .AddTestUsers(TestUsers.Users)
                 .AddConfigurationStore(options =>
                 {
-                    options.ConfigureDbContext = builder =>
-                                    builder.UseSqlServer(connectionString, sql => sql.MigrationsAssembly(migrationsAssembly));
+                    options.ConfigureDbContext = builder => builder.UseSqlServer(connectionString, sql => sql.MigrationsAssembly(migrationsAssembly));
                 })
                 .AddOperationalStore(options =>
                 {
@@ -62,7 +66,25 @@ namespace Kaercher.IDP
                 });
 
             // not recommended for production - you need to store your key material somewhere secure
-            builder.AddDeveloperSigningCredential();
+            if (Environment.IsDevelopment())
+            {
+                builder.AddDeveloperSigningCredential();
+            }
+            else
+            {
+                throw new Exception("need to configure key material");
+            }
+
+            services.AddCors(options =>
+            {
+                options.AddPolicy("CorsPolicy", corsBuilder =>
+                {
+                    corsBuilder.AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .SetIsOriginAllowed(origin => origin == "http://localhost:4200")
+                    .AllowCredentials();
+                });
+            });
         }
 
         public void Configure(IApplicationBuilder app)
@@ -76,6 +98,7 @@ namespace Kaercher.IDP
 
             // uncomment if you want to add MVC
             app.UseStaticFiles();
+            app.UseCors("CorsPolicy");
             app.UseRouting();
             
             app.UseIdentityServer();
@@ -98,34 +121,34 @@ namespace Kaercher.IDP
 
                 //Seed the data
                 //Seed the clients
-                //if (!context.Clients.Any())
-                //{
-                //    foreach (var client in Config.Clients)
-                //    {
-                //        context.Clients.Add(client.ToEntity());
-                //    }
-                //    context.SaveChanges();
-                //}
+                if (!context.Clients.Any())
+                {
+                    foreach (var client in Config.GetClients())
+                    {
+                        context.Clients.Add(client.ToEntity());
+                    }
+                    context.SaveChanges();
+                }
 
-                ////Seed the identity resources
-                //if (!context.IdentityResources.Any())
-                //{
-                //    foreach (var resource in Config.IdentityResources)
-                //    {
-                //        context.IdentityResources.Add(resource.ToEntity());
-                //    }
-                //    context.SaveChanges();
-                //}
+                //Seed the identity resources
+                if (!context.IdentityResources.Any())
+                {
+                    foreach (var resource in Config.GetIdentityResources())
+                    {
+                        context.IdentityResources.Add(resource.ToEntity());
+                    }
+                    context.SaveChanges();
+                }
 
-                ////Seed api recources
-                //if (!context.ApiResources.Any())
-                //{
-                //    foreach (var resource in Config.Apis)
-                //    {
-                //        context.ApiResources.Add(resource.ToEntity());
-                //    }
-                //    context.SaveChanges();
-                //}
+                //Seed api recources
+                if (!context.ApiResources.Any())
+                {
+                    foreach (var resource in Config.GetApiResources())
+                    {
+                        context.ApiResources.Add(resource.ToEntity());
+                    }
+                    context.SaveChanges();
+                }
             }
         }
     }

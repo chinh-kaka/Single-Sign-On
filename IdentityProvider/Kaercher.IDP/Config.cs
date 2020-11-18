@@ -10,21 +10,52 @@ namespace Kaercher.IDP
 {
     public static class Config
     {
-        public static IEnumerable<IdentityResource> IdentityResources =>
-            new IdentityResource[]
-            { 
-                new IdentityResources.OpenId(),
-                new IdentityResources.Profile()
-            };
-
-        public static IEnumerable<ApiResource> Apis =>
-            new ApiResource[]
+        public static IEnumerable<ApiResource> GetApiResources()
+        {
+            return new List<ApiResource>
             {
-                new ApiResource("kaerchernetApi", "Customer Api for kaerchernet")
+                new ApiResource("kaerchernet-api", "Implement API for KaercherNet")
+            };
+        }
+
+        public static IEnumerable<IdentityResource> GetIdentityResources()
+        {
+            return new List<IdentityResource>
+            {
+                new IdentityResources.OpenId(),
+                new IdentityResources.Profile(),
+            };
+        }
+
+        public static IEnumerable<Client> GetClients()
+        {
+            return new List<Client>
+            {
+                new Client
+                {
+                    ClientId = "kaerchernet-webapp",
+                    ClientName = "kaerchernet-project",
+                    RequireClientSecret = false,
+                    AllowedGrantTypes = GrantTypes.Code,
+                    RequirePkce = true,
+                    AllowAccessTokensViaBrowser = true,
+                    RequireConsent = false,
+
+
+                    RedirectUris =           { "http://localhost:4200/signin-callback", "http://localhost:4200/assets/silent-callback.html" },
+                    PostLogoutRedirectUris = { "http://localhost:4200/signout-callback" },
+                    AllowedCorsOrigins =     { "http://localhost:4200" },
+
+                    AllowedScopes =
+                    {
+                        IdentityServerConstants.StandardScopes.OpenId,
+                        IdentityServerConstants.StandardScopes.Profile,
+                        "kaerchernet-api"
+                    },
+                    AccessTokenLifetime = 600
+                },
             };
 
-        public static IEnumerable<Client> Clients =>
-            new Client[] 
-            { };
+        }
     }
 }
